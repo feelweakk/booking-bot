@@ -1,50 +1,51 @@
-# 💈 Booking Bot — онлайн-запись клиентов в Telegram
+# 💈 Booking Bot — online appointments in Telegram
 
-Готовый бот для записи клиентов: барбершоп, салон красоты, мастер маникюра, репетитор, автосервис.
-Клиент записывается за минуту без звонков, а владелец сразу получает уведомление.
+A ready-to-use bot for booking customers: barbershops, beauty salons, nail artists, tutors, repair shops.
+Customers book in under a minute without calling, and the owner gets notified instantly.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![aiogram](https://img.shields.io/badge/aiogram-3-26A5E4?logo=telegram&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 
-## ✨ Возможности
+## ✨ Features
 
-**Для клиента**
-- Выбор услуги с ценой и длительностью
-- Выбор дня (на неделю вперёд) и свободного времени
-- Номер телефона отправляется одной кнопкой
-- Подтверждение записи
-- «Мои записи» с возможностью отменить
+**For customers**
+- Choose a service with its price and duration
+- Pick a day (up to a week ahead) and a free time slot
+- Share a phone number with one tap
+- Confirm the booking
+- "My bookings" with the option to cancel
 
-**Для владельца**
-- Мгновенное уведомление о новой записи и об отмене
-- Команда `/admin` — список всех предстоящих записей
-- Занятое время автоматически скрывается, двойная запись невозможна
+**For the owner**
+- Instant notification about every new booking and cancellation
+- `/admin` command — list of all upcoming bookings
+- Booked slots are hidden automatically, double booking is impossible
 
-## 🔄 Как проходит запись
+## 🔄 Booking flow
 
 ```
-📅 Записаться → Услуга → День → Время → Имя → Телефон → ✅ Подтвердить
-                                                              ↓
-                                              🔔 Уведомление владельцу
+📅 Book now → Service → Day → Time → Name → Phone → ✅ Confirm
+                                                        ↓
+                                          🔔 Owner gets notified
 ```
 
-## ⚙️ Настройка под свой бизнес
+## ⚙️ Adapting it to your business
 
-Всё, что зависит от бизнеса, лежит в [`config.py`](config.py):
+Everything business-specific lives in [`config.py`](config.py):
 
 ```python
-BUSINESS_NAME = "Barbershop «Бритва»"
+BUSINESS_NAME = "Sharp Cut Barbershop"
+CURRENCY = "€"
 
 SERVICES = {
-    "haircut": ("Мужская стрижка", 1500, 60),   # название, цена, минуты
-    "beard":   ("Стрижка бороды", 800, 30),
+    "haircut": ("Men's haircut", 25, 60),   # name, price, minutes
+    "beard":   ("Beard trim", 15, 30),
 }
 
 WORK_HOURS = ["10:00", "11:00", "12:00", ...]
 ```
 
-## 🚀 Запуск
+## 🚀 Getting started
 
 ```bash
 git clone https://github.com/feelweakk/booking-bot.git
@@ -52,32 +53,33 @@ cd booking-bot
 pip install -r requirements.txt
 ```
 
-1. Создай бота у [@BotFather](https://t.me/BotFather) и получи токен
-2. Узнай свой Telegram ID у [@userinfobot](https://t.me/userinfobot)
-3. Скопируй `.env.example` в `.env` и заполни оба значения
-4. Запусти:
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token
+2. Get your Telegram ID from [@userinfobot](https://t.me/userinfobot)
+3. Copy `.env.example` to `.env` and fill in both values
+4. Run:
 
 ```bash
 python bot.py
 ```
 
-## 📁 Структура
+## 📁 Project structure
 
 ```
-├── bot.py         # логика: шаги записи (FSM), обработчики, админка
-├── keyboards.py   # все кнопки и клавиатуры
-├── db.py          # база записей (SQLite)
-├── config.py      # настройки бизнеса: услуги, часы работы
-└── .env.example   # пример файла с токеном
+├── bot.py         # logic: booking steps (FSM), handlers, admin panel
+├── keyboards.py   # all buttons and keyboards
+├── db.py          # bookings database (SQLite)
+├── config.py      # business settings: services, opening hours
+└── .env.example   # example environment file
 ```
 
-## 🔮 Что можно добавить под заказ
+## 🔮 Available as add-ons
 
-- Напоминание клиенту за 2 часа до визита
-- Несколько мастеров со своим расписанием
-- Онлайн-оплата и предоплата
-- Выгрузка записей в Google Таблицы
+- Reminder to the customer 2 hours before the visit
+- Multiple staff members with their own schedules
+- Online payments and deposits
+- Export bookings to Google Sheets
+- Multi-language support
 
 ---
 
-Хотите такого бота для своего бизнеса? Пишите: **Лука · [fykkkke](https://github.com/feelweakk)**
+Want a bot like this for your business? **Luka · [fykkkke](https://github.com/feelweakk)** — [Telegram](https://t.me/fykkkkke)

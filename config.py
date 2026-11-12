@@ -1,4 +1,4 @@
-"""Настройки бота. Под нового клиента обычно меняется только этот файл."""
+"""Bot settings. For a new client you usually only change this file."""
 
 import os
 
@@ -7,23 +7,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))  # Telegram ID владельца — ему приходят новые записи
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))  # owner's Telegram ID — receives new bookings
 
-BUSINESS_NAME = "Barbershop «Бритва»"
+BUSINESS_NAME = "Sharp Cut Barbershop"
 BUSINESS_INFO = (
-    "📍 ул. Примерная, 10\n"
-    "🕙 Ежедневно с 10:00 до 20:00\n"
-    "📞 +7 (900) 000-00-00"
+    "📍 10 Main Street\n"
+    "🕙 Open daily 10:00 – 20:00\n"
+    "📞 +00 000 000 000"
 )
+CURRENCY = "€"
 
-# Услуги: код -> (название, цена в рублях, длительность в минутах)
+# Services: code -> (name, price, duration in minutes)
 SERVICES = {
-    "haircut": ("Мужская стрижка", 1500, 60),
-    "beard": ("Стрижка бороды", 800, 30),
-    "combo": ("Стрижка + борода", 2000, 90),
-    "kids": ("Детская стрижка", 1000, 45),
+    "haircut": ("Men's haircut", 25, 60),
+    "beard": ("Beard trim", 15, 30),
+    "combo": ("Haircut + beard", 35, 90),
+    "kids": ("Kids' haircut", 18, 45),
 }
 
-# Свободные слоты для записи
+# Time slots available for booking
 WORK_HOURS = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"]
-DAYS_AHEAD = 7  # на сколько дней вперёд можно записаться
+DAYS_AHEAD = 7  # how many days ahead customers can book

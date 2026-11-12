@@ -1,4 +1,4 @@
-"""База данных записей (SQLite)."""
+"""Bookings database (SQLite)."""
 
 import sqlite3
 from datetime import date
@@ -8,7 +8,7 @@ DB_PATH = "bookings.db"
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = sqlite3.Row  # access columns by name
     return conn
 
 
@@ -25,21 +25,21 @@ def init_db():
                 day        TEXT    NOT NULL,   -- 2026-11-20
                 time       TEXT    NOT NULL,   -- 14:00
                 created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE (day, time)             -- на одно время — одна запись
+                UNIQUE (day, time)             -- one booking per time slot
             )
             """
         )
 
 
 def taken_times(day: str) -> set[str]:
-    """Какие слоты в этот день уже заняты."""
+    """Time slots that are already booked on this day."""
     with get_connection() as conn:
         rows = conn.execute("SELECT time FROM bookings WHERE day = ?", (day,)).fetchall()
     return {row["time"] for row in rows}
 
 
 def create_booking(user_id: int, name: str, phone: str, service: str, day: str, time: str):
-    """Создаёт запись. Возвращает её id или None, если время уже успели занять."""
+    """Creates a booking. Returns its id, or None if the slot was just taken."""
     try:
         with get_connection() as conn:
             cur = conn.execute(
@@ -52,7 +52,7 @@ def create_booking(user_id: int, name: str, phone: str, service: str, day: str, 
 
 
 def user_bookings(user_id: int):
-    """Будущие записи пользователя."""
+    """Upcoming bookings of one customer."""
     with get_connection() as conn:
         return conn.execute(
             "SELECT * FROM bookings WHERE user_id = ? AND day >= ? ORDER BY day, time",
@@ -61,7 +61,7 @@ def user_bookings(user_id: int):
 
 
 def upcoming_bookings():
-    """Все будущие записи — для администратора."""
+    """All upcoming bookings — for the admin."""
     with get_connection() as conn:
         return conn.execute(
             "SELECT * FROM bookings WHERE day >= ? ORDER BY day, time",
@@ -70,7 +70,7 @@ def upcoming_bookings():
 
 
 def cancel_booking(booking_id: int, user_id: int):
-    """Отменяет запись пользователя. Возвращает удалённую запись или None."""
+    """Cancels a customer's booking. Returns the deleted booking or None."""
     with get_connection() as conn:
         booking = conn.execute(
             "SELECT * FROM bookings WHERE id = ? AND user_id = ?", (booking_id, user_id)

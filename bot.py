@@ -1,8 +1,8 @@
-"""Бот для онлайн-записи клиентов (барбершоп, салон, репетитор, сервис).
+"""Telegram bot for online booking (barbershop, beauty salon, tutor, repair shop).
 
-Запуск:
+Run:
     pip install -r requirements.txt
-    скопируй .env.example в .env и заполни
+    copy .env.example to .env and fill it in
     python bot.py
 """
 
@@ -20,13 +20,13 @@ from aiogram.types import CallbackQuery, Message
 
 import db
 import keyboards as kb
-from config import ADMIN_ID, BOT_TOKEN, BUSINESS_INFO, BUSINESS_NAME, SERVICES
+from config import ADMIN_ID, BOT_TOKEN, BUSINESS_INFO, BUSINESS_NAME, CURRENCY, SERVICES
 
 dp = Dispatcher()
 
 
 class Booking(StatesGroup):
-    """Шаги записи. Бот запоминает, на каком шаге сейчас клиент."""
+    """Booking steps. The bot remembers which step each customer is on."""
 
     service = State()
     day = State()
@@ -39,21 +39,21 @@ class Booking(StatesGroup):
 def booking_summary(data: dict) -> str:
     name, price, duration = SERVICES[data["service"]]
     return (
-        f"💈 Услуга: <b>{name}</b> ({duration} мин)\n"
-        f"💰 Цена: <b>{price} ₽</b>\n"
-        f"📅 Дата: <b>{kb.format_day(date.fromisoformat(data['day']))}</b>\n"
-        f"🕐 Время: <b>{data['time']}</b>"
+        f"💈 Service: <b>{name}</b> ({duration} min)\n"
+        f"💰 Price: <b>{CURRENCY}{price}</b>\n"
+        f"📅 Date: <b>{kb.format_day(date.fromisoformat(data['day']))}</b>\n"
+        f"🕐 Time: <b>{data['time']}</b>"
     )
 
 
-# ---------- Главное меню ----------
+# ---------- Main menu ----------
 
 @dp.message(CommandStart())
 async def start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(
-        f"Здравствуйте! 👋 Это бот <b>{BUSINESS_NAME}</b>.\n\n"
-        "Здесь можно записаться за минуту — без звонков и ожидания.",
+        f"Hi there! 👋 This is the <b>{BUSINESS_NAME}</b> bot.\n\n"
+        "Book an appointment in under a minute — no calls, no waiting.",
         reply_markup=kb.main_menu,
     )
 
@@ -67,78 +67,78 @@ async def info(message: Message):
 async def my_bookings(message: Message):
     bookings = db.user_bookings(message.from_user.id)
     if not bookings:
-        await message.answer("У вас нет активных записей.")
+        await message.answer("You have no upcoming bookings.")
         return
     for b in bookings:
         await message.answer(booking_summary(dict(b)), reply_markup=kb.cancel_booking_keyboard(b["id"]))
 
 
-# ---------- Запись: шаг 1 — услуга ----------
+# ---------- Booking: step 1 — service ----------
 
 @dp.message(F.text == kb.BTN_BOOK)
 async def book_start(message: Message, state: FSMContext):
     await state.clear()
     await state.set_state(Booking.service)
-    await message.answer("Выберите услугу:", reply_markup=kb.services_keyboard())
+    await message.answer("Choose a service:", reply_markup=kb.services_keyboard())
 
 
 @dp.callback_query(Booking.service, F.data.startswith("service:"))
 async def choose_service(callback: CallbackQuery, state: FSMContext):
     await state.update_data(service=callback.data.split(":")[1])
     await state.set_state(Booking.day)
-    await callback.message.edit_text("Выберите день:", reply_markup=kb.days_keyboard())
+    await callback.message.edit_text("Choose a day:", reply_markup=kb.days_keyboard())
     await callback.answer()
 
 
-# ---------- Шаг 2 — день ----------
+# ---------- Step 2 — day ----------
 
 @dp.callback_query(Booking.day, F.data.startswith("day:"))
 async def choose_day(callback: CallbackQuery, state: FSMContext):
     day = callback.data.split(":")[1]
     free = kb.free_times_for(day, db.taken_times(day))
     if not free:
-        await callback.answer("На этот день свободного времени нет 😔", show_alert=True)
+        await callback.answer("Sorry, this day is fully booked 😔", show_alert=True)
         return
     await state.update_data(day=day)
     await state.set_state(Booking.time)
-    await callback.message.edit_text("Выберите время:", reply_markup=kb.times_keyboard(free))
+    await callback.message.edit_text("Choose a time:", reply_markup=kb.times_keyboard(free))
     await callback.answer()
 
 
-# ---------- Шаг 3 — время ----------
+# ---------- Step 3 — time ----------
 
 @dp.callback_query(Booking.time, F.data.startswith("time:"))
 async def choose_time(callback: CallbackQuery, state: FSMContext):
     await state.update_data(time=callback.data.split(":", 1)[1])
     await state.set_state(Booking.name)
-    await callback.message.edit_text("Как к вам обращаться? Напишите имя:")
+    await callback.message.edit_text("What's your name?")
     await callback.answer()
 
 
-# ---------- Кнопки «Назад» ----------
+# ---------- "Back" buttons ----------
 
 @dp.callback_query(F.data == "back:services")
 async def back_to_services(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Booking.service)
-    await callback.message.edit_text("Выберите услугу:", reply_markup=kb.services_keyboard())
+    await callback.message.edit_text("Choose a service:", reply_markup=kb.services_keyboard())
     await callback.answer()
 
 
 @dp.callback_query(F.data == "back:days")
 async def back_to_days(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Booking.day)
-    await callback.message.edit_text("Выберите день:", reply_markup=kb.days_keyboard())
+    await callback.message.edit_text("Choose a day:", reply_markup=kb.days_keyboard())
     await callback.answer()
 
 
-# ---------- Шаг 4 — имя и телефон ----------
+# ---------- Step 4 — name and phone ----------
 
 @dp.message(Booking.name, F.text)
 async def enter_name(message: Message, state: FSMContext):
     await state.update_data(name=message.text.strip()[:50])
     await state.set_state(Booking.phone)
     await message.answer(
-        "Отправьте номер телефона кнопкой ниже или напишите его:",
+        "Share your phone number with the button below, or type it in:",
         reply_markup=kb.phone_keyboard,
     )
 
@@ -147,21 +147,21 @@ async def enter_name(message: Message, state: FSMContext):
 async def enter_phone(message: Message, state: FSMContext):
     phone = message.contact.phone_number if message.contact else message.text.strip()
     digits = "".join(ch for ch in phone if ch.isdigit())
-    if not 10 <= len(digits) <= 15:
-        await message.answer("Похоже, номер неверный. Попробуйте ещё раз:")
+    if not 7 <= len(digits) <= 15:
+        await message.answer("That doesn't look like a valid number. Please try again:")
         return
 
     await state.update_data(phone=phone)
     await state.set_state(Booking.confirm)
     data = await state.get_data()
-    await message.answer("Почти готово!", reply_markup=kb.main_menu)
+    await message.answer("Almost done!", reply_markup=kb.main_menu)
     await message.answer(
-        f"Проверьте запись:\n\n{booking_summary(data)}\n👤 {escape(data['name'])}, {escape(phone)}",
+        f"Please check your booking:\n\n{booking_summary(data)}\n👤 {escape(data['name'])}, {escape(phone)}",
         reply_markup=kb.confirm_keyboard(),
     )
 
 
-# ---------- Шаг 5 — подтверждение ----------
+# ---------- Step 5 — confirmation ----------
 
 @dp.callback_query(Booking.confirm, F.data.startswith("confirm:"))
 async def confirm(callback: CallbackQuery, state: FSMContext, bot: Bot):
@@ -169,7 +169,7 @@ async def confirm(callback: CallbackQuery, state: FSMContext, bot: Bot):
     await state.clear()
 
     if callback.data == "confirm:no":
-        await callback.message.edit_text("Запись отменена.")
+        await callback.message.edit_text("Booking cancelled.")
         await callback.answer()
         return
 
@@ -177,47 +177,47 @@ async def confirm(callback: CallbackQuery, state: FSMContext, bot: Bot):
         callback.from_user.id, data["name"], data["phone"], data["service"], data["day"], data["time"]
     )
     if booking_id is None:
-        await callback.message.edit_text("😔 Это время только что заняли. Попробуйте выбрать другое.")
+        await callback.message.edit_text("😔 Someone just took this slot. Please choose another time.")
         await callback.answer()
         return
 
-    await callback.message.edit_text(f"✅ Вы записаны!\n\n{booking_summary(data)}\n\nЖдём вас!")
+    await callback.message.edit_text(f"✅ You're booked!\n\n{booking_summary(data)}\n\nSee you soon!")
     await callback.answer()
 
-    # Уведомление владельцу
+    # Notify the owner
     if ADMIN_ID:
         await bot.send_message(
             ADMIN_ID,
-            f"🆕 <b>Новая запись #{booking_id}</b>\n\n{booking_summary(data)}\n"
+            f"🆕 <b>New booking #{booking_id}</b>\n\n{booking_summary(data)}\n"
             f"👤 {escape(data['name'])}, {escape(data['phone'])}",
         )
 
 
-# ---------- Отмена записи клиентом ----------
+# ---------- Customer cancels a booking ----------
 
 @dp.callback_query(F.data.startswith("cancel:"))
 async def cancel(callback: CallbackQuery, bot: Bot):
     booking = db.cancel_booking(int(callback.data.split(":")[1]), callback.from_user.id)
     if booking is None:
-        await callback.answer("Запись не найдена", show_alert=True)
+        await callback.answer("Booking not found", show_alert=True)
         return
-    await callback.message.edit_text("❌ Запись отменена")
+    await callback.message.edit_text("❌ Booking cancelled")
     await callback.answer()
     if ADMIN_ID:
         await bot.send_message(
-            ADMIN_ID, f"❌ Клиент отменил запись #{booking['id']}\n\n{booking_summary(dict(booking))}"
+            ADMIN_ID, f"❌ Customer cancelled booking #{booking['id']}\n\n{booking_summary(dict(booking))}"
         )
 
 
-# ---------- Панель администратора ----------
+# ---------- Admin panel ----------
 
 @dp.message(Command("admin"), F.from_user.id == ADMIN_ID)
 async def admin(message: Message):
     bookings = db.upcoming_bookings()
     if not bookings:
-        await message.answer("Предстоящих записей нет.")
+        await message.answer("No upcoming bookings.")
         return
-    lines = ["📋 <b>Предстоящие записи</b>\n"]
+    lines = ["📋 <b>Upcoming bookings</b>\n"]
     for b in bookings:
         service_name = SERVICES[b["service"]][0]
         day = kb.format_day(date.fromisoformat(b["day"]))
@@ -228,7 +228,7 @@ async def admin(message: Message):
 async def main():
     logging.basicConfig(level=logging.INFO)
     if not BOT_TOKEN:
-        raise SystemExit("Не найден BOT_TOKEN. Создай файл .env по примеру .env.example")
+        raise SystemExit("BOT_TOKEN not found. Create a .env file based on .env.example")
     db.init_db()
     bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
     await dp.start_polling(bot)
